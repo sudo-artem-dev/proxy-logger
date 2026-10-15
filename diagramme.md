@@ -3,6 +3,10 @@
 
 ```mermaid
 classDiagram
+    direction LR
+
+    class Client
+
     class IWebsite {
         <<interface>>
         +addPage(name: string) void
@@ -31,8 +35,14 @@ classDiagram
         +setMode(mode: LogMode) void
     }
 
-    IWebsite <|.. WebsiteService
-    IWebsite <|.. WebsiteProxy
-    WebsiteProxy --> IWebsite : délègue
+    %% Le client ne connaît que le proxy, jamais le service réel
+    Client ..> WebsiteProxy : utilise
+
+    %% Le proxy intercepte, journalise puis délègue au service
     WebsiteProxy --> Logger : utilise
+    WebsiteProxy --> IWebsite : délègue
+
+    %% Le proxy et le service réel partagent la même interface
+    WebsiteProxy ..|> IWebsite
+    WebsiteService ..|> IWebsite
 ```

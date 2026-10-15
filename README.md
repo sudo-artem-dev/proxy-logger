@@ -114,6 +114,10 @@ proxy-logger/
 
 ```mermaid
 classDiagram
+    direction LR
+
+    class Client
+
     class IWebsite {
         <<interface>>
         +addPage(name: string) void
@@ -142,11 +146,19 @@ classDiagram
         +setMode(mode: LogMode) void
     }
 
-    IWebsite <|.. WebsiteService : implémente
-    IWebsite <|.. WebsiteProxy : implémente
-    WebsiteProxy --> IWebsite : délègue
+    %% Le client ne connaît que le proxy, jamais le service réel
+    Client ..> WebsiteProxy : utilise
+
+    %% Le proxy intercepte, journalise puis délègue au service
     WebsiteProxy --> Logger : utilise
+    WebsiteProxy --> IWebsite : délègue
+
+    %% Le proxy et le service réel partagent la même interface
+    WebsiteProxy ..|> IWebsite : implémente
+    WebsiteService ..|> IWebsite : implémente
 ```
+
+Le `Client` (`main.ts`) dépend uniquement de `WebsiteProxy` : il n'a aucun lien direct avec `WebsiteService` et passe toujours par le proxy.
 
 ---
 
@@ -390,22 +402,22 @@ Le proxy n'est utile que si le client **passe par lui**. Dans `main.ts`, le TEST
 ## 8. Récap
 
 ```
-           ┌─────────────────────────────┐
-           │      IWebsite (interface)   │
-           └──────────────┬──────────────┘
-              implémente  │  implémente
-            ┌─────────────┴─────────────┐
-            ▼                           ▼
-   ┌─────────────────┐  délègue  ┌─────────────────┐
-   │  WebsiteProxy   │ ────────► │ WebsiteService  │
-   │  (intercepte)   │           │ (gère les pages)│
-   └────────┬────────┘           └─────────────────┘
-            │ utilise
-            ▼
-   ┌─────────────────┐
-   │     Logger      │──► console   (mode "console")
-   │                 │──► fichier   (mode "file")
-   └─────────────────┘
+                              ┌─────────────────────────────┐
+                              │      IWebsite (interface)   │
+                              └──────────────┬──────────────┘
+                                 implémente  │  implémente
+                               ┌─────────────┴─────────────┐
+                               ▼                           ▼
+┌──────────┐ utilise  ┌─────────────────┐  délègue  ┌─────────────────┐
+│  Client  │ ───────► │  WebsiteProxy   │ ────────► │ WebsiteService  │
+│ (main.ts)│          │  (intercepte)   │           │ (gère les pages)│
+└──────────┘          └────────┬────────┘           └─────────────────┘
+                               │ utilise
+                               ▼
+                      ┌─────────────────┐
+                      │     Logger      │──► console   (mode "console")
+                      │                 │──► fichier   (mode "file")
+                      └─────────────────┘
 ```
 
 - **Proxy** = un intermédiaire avec **la même interface** que le vrai objet.
